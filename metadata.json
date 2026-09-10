@@ -1,0 +1,6 @@
+{
+  "name": "Gerador de Relatórios de Formandos & Processos DRA",
+  "description": "Processamento automático de planilhas acadêmicas com fórmulas Excel, ENADE, emissão de processos DRA137, DRA100 e DRA139, exportação em lote XLSX/ZIP e integração com Google Apps Script.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
