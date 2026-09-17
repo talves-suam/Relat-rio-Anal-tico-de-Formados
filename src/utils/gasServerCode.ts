@@ -300,6 +300,45 @@ function processarRelatorioDRA(periodosFiltro) {
   var ignoradosColacao137 = 0;
   var hoje = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy');
 
+  var cursosColacaoRealizada = [
+    'arquitetura e urbanismo', 'bacharelado em biologia', 'bacharelado em educacao fisica',
+    'ciencia da computacao', 'engenharia civil', 'engenharia de producao', 'engenharia eletrica',
+    'engenharia mecanica', 'licenciatura em educacao fisica', 'licenciatura em historia',
+    'licenciatura em letras', 'licenciatura em pedagogia',
+    'superior de tecnologia em analise e desenvolvimento de sistemas',
+    'superior de tecnologia em design de interiores',
+    'superior de tecnologia em gestao da tecnologia da informacao',
+    'superior de tecnologia em redes de computadores', 'farmacia', 'nutricao',
+    'superior de tecnologia em gastronomia', 'servico social',
+    'superior de tecnologia em gestao ambiental', 'superior de tecnologia em gestao hospitalar',
+    'odontologia', 'fisioterapia', 'bacharelado em biomedicina',
+    'superior de tecnologia em estetica e cosmetica',
+    // 19 de Setembro
+    'direito', 'comunicacao social', 'superior de tecnologia em marketing',
+    'superior de tecnologia em design grafico',
+    'superior de tecnologia em gestao de servicos juridicos notariais',
+    'enfermagem', 'ciencias contabeis',
+    // 20 de Setembro
+    'superior de tecnologia em gestao de recursos humanos',
+    'superior de tecnologia em gestao financeira',
+    'superior de tecnologia em gestao publica',
+    'superior de tecnologia em gestao de negocios e inovacao',
+    'superior de tecnologia em automacao industrial',
+    'superior de tecnologia em gestao comercial',
+    'superior de tecnologia em gestao de seguranca publica',
+    'superior de tecnologia em processos gerenciais', 'psicologia'
+  ];
+
+  function isCursoColacaoJaRealizada(c) {
+    if (!c) return false;
+    var cn = normText(c);
+    for (var k = 0; k < cursosColacaoRealizada.length; k++) {
+      var cr = cursosColacaoRealizada[k];
+      if (cn === cr || cn.indexOf(cr) !== -1 || (cr.length >= 6 && cr.indexOf(cn) !== -1)) return true;
+    }
+    return false;
+  }
+
   function isNaoVal(v) {
     var nv = normText(v);
     return nv === 'nao' || nv === 'n' || nv === 'false';
@@ -340,7 +379,7 @@ function processarRelatorioDRA(periodosFiltro) {
 
       if (normText(aa139) === 'em exigencia') pParts.push('Resolver Exigência do DRA139 (Cerimônia de Formatura)');
       else if (isNaoVal(z139)) {
-        if (colacaoMap[mat] || (curso && colacaoMap[curso])) pParts.push('Cerimônia de Formatura Realizada, NÃO Abrir DRA139');
+        if (colacaoMap[mat] || (curso && colacaoMap[curso]) || isCursoColacaoJaRealizada(curso)) pParts.push('Cerimônia de Formatura Realizada, NÃO Abrir DRA139');
         else pParts.push('Abrir DRA139 (Cerimônia de Formatura)');
       }
 
@@ -433,7 +472,7 @@ function processarRelatorioDRA(periodosFiltro) {
       alunos100.push([mat, 'DRA100', 'Finalizado', ESCLARECIMENTO, p100, p100]);
     }
 
-    if (tem139 && !bloqueio139 && !vistos139[mat]) {
+    if (tem139 && !bloqueio139 && !isCursoColacaoJaRealizada(curso) && !colacaoMap[mat] && !vistos139[mat]) {
       vistos139[mat] = true;
       alunos139.push([mat, 'DRA139', 'Aguardando Atendimento', ESCLARECIMENTO, CERIMONIA_PARECER, CERIMONIA_PARECER]);
     }

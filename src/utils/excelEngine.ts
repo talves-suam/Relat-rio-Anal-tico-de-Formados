@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
-import { ColumnMapping, ProcessedDataset, StudentEvaluated } from '../types';
+import { ColacaoGroup, ColumnMapping, ProcessedDataset, StudentEvaluated } from '../types';
+import { getRealizedCoursesSet, isCursoColacaoRealizada } from './colacoesConfig';
 
 export const DENY_PHRASES = [
   'resolver exigencia',
@@ -434,7 +435,8 @@ export function extrairPeriodoNormalizado(val: any): string {
 export function parseWorkbookData(
   wb: XLSX.WorkBook,
   filename: string,
-  filtroPeriodosSelecionados?: string[]
+  filtroPeriodosSelecionados?: string[],
+  colacoesConfig?: ColacaoGroup[]
 ): ProcessedDataset {
   // Find main sheet: either active / first or named 'Relatório' / 'Formados'
   let mainSheetName = wb.SheetNames[0];
@@ -450,6 +452,9 @@ export function parseWorkbookData(
   const rows: any[][] = XLSX.utils.sheet_to_json(mainWs, { header: 1, defval: '' });
 
   const mapping = detectarColunas(rows);
+
+  // Set of courses with realized colações (either forced or past scheduled date)
+  const realizedCoursesSet = colacoesConfig ? getRealizedCoursesSet(colacoesConfig) : new Set<string>();
 
   // Check for auxiliary sheets
   const colacaoSheet = wb.Sheets['Colação Realizada'] || wb.Sheets['Colacao Realizada'];
@@ -552,6 +557,11 @@ export function parseWorkbookData(
 
     const nome = String(row[mapping.colNome] || '').trim();
     const cpf = cleanCpf(row[mapping.colCpf]);
+    const curso = mapping.colCurso < row.length ? String(row[mapping.colCurso] || '').trim() : '';
+
+    // Check if this course or matricula has already had its graduation ceremony
+    const cursoColou = isCursoColacaoRealizada(curso, realizedCoursesSet);
+    const colacaoRealizadaMatriculaOuCurso = colacaoMatriculas.has(matricula) || (curso ? colacaoMatriculas.has(curso) : false) || cursoColou;
 
     // Check Coluna Q (Colação)
     const valColacao = row[mapping.colColacao] !== undefined ? String(row[mapping.colColacao] || '').trim() : '';
@@ -561,9 +571,13 @@ export function parseWorkbookData(
     let textoResultado = '';
     if (mapping.colRes < row.length && row[mapping.colRes] !== undefined && String(row[mapping.colRes]).trim() !== '') {
       textoResultado = String(row[mapping.colRes]).trim();
+      // If course already colou grau, ensure DRA139 is excluded even if column AL originally had 'Abrir DRA139'
+      if (colacaoRealizadaMatriculaOuCurso && norm(textoResultado).includes('139') && !norm(textoResultado).includes('nao abrir')) {
+        textoResultado = textoResultado.replace(/abrir dra139\s*(\([^)]*\))?/gi, 'Cerimônia de Formatura Realizada, NÃO Abrir DRA139 (Cerimônia de Formatura)');
+      }
     } else {
       // Evaluate Excel formula logic dynamically!
-      textoResultado = calcularFormulaResultado(row, mapping, colacaoMatriculas);
+      textoResultado = calcularFormulaResultado(row, mapping, colacaoMatriculas, realizedCoursesSet);
     }
 
     // Check / Evaluate ENADE
@@ -578,19 +592,31 @@ export function parseWorkbookData(
     const destinos = avaliarExportacaoAluno(textoResultado);
     const enadeParsed = mapEnade(enadeText);
 
+    // If course already had graduation or period elapsed, strictly block DRA139
+    const exportar139Final = destinos.dra139 && !colacaoRealizadaMatriculaOuCurso;
+
+    let motivoBloqueioFinal = destinos.motivoBloqueio;
+    if (cursoColou && destinos.dra139) {
+      motivoBloqueioFinal = `Colação do curso (${curso}) já realizada ou período encerrado (NÃO abrir DRA139)`;
+    } else if (destinos.dra137 && jaColouGrau) {
+      motivoBloqueioFinal = 'Já possui data de colação de grau registrada';
+    }
+
     const aluno: StudentEvaluated = {
       matricula,
       nome,
       cpf,
+      curso,
       periodo: periodoNorm || rawPeriodo || 'Não Informado',
       resultadoOriginal: textoResultado,
       dataColacao: valColacao,
       jaColouGrau,
+      colacaoCursoRealizada: cursoColou,
       exportarEnade: destinos.enade,
       exportar137: destinos.dra137 && !jaColouGrau,
       exportar100: destinos.dra100,
-      exportar139: destinos.dra139,
-      motivoBloqueio: destinos.motivoBloqueio || (destinos.dra137 && jaColouGrau ? 'Já possui data de colação de grau registrada' : undefined),
+      exportar139: exportar139Final,
+      motivoBloqueio: motivoBloqueioFinal,
       enadeText,
       anoEnade: enadeParsed.ano,
       condicaoEnade: enadeParsed.condicao,
@@ -622,7 +648,8 @@ export function parseWorkbookData(
       alunos100.push(aluno);
     }
 
-    if (destinos.dra139 && !vistos139.has(matricula)) {
+    // Only export to DRA139 if course has NOT already had ceremony
+    if (exportar139Final && !vistos139.has(matricula)) {
       vistos139.add(matricula);
       alunos139.push(aluno);
     }
@@ -652,7 +679,8 @@ export function parseWorkbookData(
 export function calcularFormulaResultado(
   row: any[],
   mapping: ColumnMapping,
-  colacaoMatriculas: Set<string>
+  colacaoMatriculas: Set<string>,
+  realizedCoursesSet?: Set<string>
 ): string {
   // Helper to extract cell values safely
   const val = (idx: number | null | undefined) =>
@@ -697,7 +725,8 @@ export function calcularFormulaResultado(
   } else if (isNao(zVal)) {
     const naColacaoRealizada =
       (matricula && colacaoMatriculas.has(matricula)) ||
-      (curso && colacaoMatriculas.has(curso));
+      (curso && colacaoMatriculas.has(curso)) ||
+      (curso && realizedCoursesSet && isCursoColacaoRealizada(curso, realizedCoursesSet));
     if (naColacaoRealizada) {
       pParts.push('Cerimônia de Formatura Realizada, NÃO Abrir DRA139 (Cerimônia de Formatura)');
     } else {

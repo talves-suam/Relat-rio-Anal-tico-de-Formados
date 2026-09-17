@@ -219,7 +219,19 @@ export const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
                       {aluno.matricula}
                     </td>
                     <td className="py-2.5 px-3 font-medium text-slate-900">
-                      {aluno.nome || 'Nome não informado'}
+                      <div>{aluno.nome || 'Nome não informado'}</div>
+                      {aluno.curso && (
+                        <div className="text-[10px] text-slate-500 font-normal flex items-center gap-1.5 mt-0.5">
+                          <span className="truncate max-w-[220px]" title={aluno.curso}>
+                            {aluno.curso}
+                          </span>
+                          {aluno.colacaoCursoRealizada && (
+                            <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-200 shrink-0">
+                              Colação Realizada
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </td>
                     <td className="py-2.5 px-3">
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium text-[11px]">
@@ -398,9 +410,30 @@ export const StudentTable: React.FC<StudentTableProps> = ({ students }) => {
                     {selectedStudentModal.exportar139 ? <CheckCircle2 className="h-4 w-4 text-violet-600" /> : <XCircle className="h-4 w-4" />}
                     <span>DRA139</span>
                   </div>
-                  <div className="text-[10px] mt-1">{selectedStudentModal.exportar139 ? 'Cerimônia' : 'Não solicitado'}</div>
+                  <div className="text-[10px] mt-1">
+                    {selectedStudentModal.exportar139
+                      ? 'Cerimônia'
+                      : selectedStudentModal.colacaoCursoRealizada
+                      ? 'Excluído (Colação Realizada)'
+                      : 'Não solicitado'}
+                  </div>
                 </div>
               </div>
+
+              {/* Curso & Periodo */}
+              {selectedStudentModal.curso && (
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+                  <div>
+                    <span className="font-bold text-slate-700 block mb-0.5">Curso do Aluno:</span>
+                    <span className="text-slate-900 font-semibold">{selectedStudentModal.curso}</span>
+                  </div>
+                  {selectedStudentModal.colacaoCursoRealizada && (
+                    <span className="px-2.5 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded-lg border border-amber-200">
+                      Colação Realizada (Sem DRA139)
+                    </span>
+                  )}
+                </div>
+              )}
 
               {/* Resultado & Bloqueios */}
               <div className="bg-slate-50 rounded-xl p-3 border border-slate-200 space-y-2">

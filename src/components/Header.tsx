@@ -6,6 +6,7 @@ import {
   HelpCircle,
   LogOut,
   ShieldCheck,
+  GraduationCap,
 } from 'lucide-react';
 import { User } from 'firebase/auth';
 
@@ -14,10 +15,12 @@ interface HeaderProps {
   totalAlunos: number;
   dataHora?: string;
   user?: User | null;
+  colacoesRealizadasCount?: number;
   onLogout?: () => void;
   onLoadSample: () => void;
   onOpenGasModal: () => void;
   onOpenFormulaModal: () => void;
+  onOpenColacoesModal: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -25,10 +28,12 @@ export const Header: React.FC<HeaderProps> = ({
   totalAlunos,
   dataHora,
   user,
+  colacoesRealizadasCount,
   onLogout,
   onLoadSample,
   onOpenGasModal,
   onOpenFormulaModal,
+  onOpenColacoesModal,
 }) => {
   return (
     <header className="border-b border-slate-200 bg-white sticky top-0 z-30 shadow-xs">
@@ -60,6 +65,21 @@ export const Header: React.FC<HeaderProps> = ({
 
         <div className="flex items-center gap-2 flex-wrap justify-between md:justify-end">
           <div className="flex items-center gap-2 flex-wrap">
+            <button
+              id="btn-open-colacoes"
+              onClick={onOpenColacoesModal}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 shadow-xs transition-colors cursor-pointer"
+              title="Gerenciar cursos com colação realizada e datas para exclusão do DRA139"
+            >
+              <GraduationCap className="h-4 w-4 text-amber-600" />
+              <span>Colações Realizadas</span>
+              {colacoesRealizadasCount !== undefined && colacoesRealizadasCount > 0 && (
+                <span className="ml-0.5 px-1.5 py-0.2 bg-amber-200/80 text-amber-900 text-[10px] rounded-full font-bold">
+                  {colacoesRealizadasCount}
+                </span>
+              )}
+            </button>
+
             <button
               id="btn-load-sample"
               onClick={onLoadSample}

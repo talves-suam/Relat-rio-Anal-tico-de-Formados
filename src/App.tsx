@@ -8,11 +8,17 @@ import { AnalyticsCharts } from './components/AnalyticsCharts';
 import { StudentTable } from './components/StudentTable';
 import { GasModal } from './components/GasModal';
 import { FormulaModal } from './components/FormulaModal';
+import { ColacoesModal } from './components/ColacoesModal';
 import { LoginScreen } from './components/LoginScreen';
 import { initAuth, logout } from './utils/firebaseAuth';
 import { loadSampleDataset, generateSampleWorkbook } from './utils/sampleData';
 import { parseWorkbookData } from './utils/excelEngine';
-import { ProcessedDataset } from './types';
+import {
+  getStoredColacoesConfig,
+  saveStoredColacoesConfig,
+  getRealizedCoursesSet,
+} from './utils/colacoesConfig';
+import { ColacaoGroup, ProcessedDataset } from './types';
 import { GraduationCap } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -52,6 +58,15 @@ export default function App() {
     }
   };
 
+  // Graduation / Colações configuration state
+  const [colacoesConfig, setColacoesConfig] = useState<ColacaoGroup[]>(() =>
+    getStoredColacoesConfig()
+  );
+
+  const colacoesRealizadasCount = useMemo(() => {
+    return getRealizedCoursesSet(colacoesConfig).size;
+  }, [colacoesConfig]);
+
   // Store raw workbook for instantaneous period re-filtering
   const [currentWb, setCurrentWb] = useState<XLSX.WorkBook | null>(() => generateSampleWorkbook());
   const [currentFilename, setCurrentFilename] = useState<string>('Relatório Analítico de Formado (Exemplo TI).xlsx');
@@ -62,26 +77,33 @@ export default function App() {
   // Modals state
   const [isGasModalOpen, setIsGasModalOpen] = useState(false);
   const [isFormulaModalOpen, setIsFormulaModalOpen] = useState(false);
+  const [isColacoesModalOpen, setIsColacoesModalOpen] = useState(false);
 
-  // Compute processed dataset based on current workbook & selected periods
+  // Compute processed dataset based on current workbook & selected periods & colações config
   const dataset: ProcessedDataset = useMemo(() => {
     if (!currentWb) {
       return loadSampleDataset();
     }
-    return parseWorkbookData(currentWb, currentFilename, selectedPeriods);
-  }, [currentWb, currentFilename, selectedPeriods]);
+    return parseWorkbookData(currentWb, currentFilename, selectedPeriods, colacoesConfig);
+  }, [currentWb, currentFilename, selectedPeriods, colacoesConfig]);
 
   // Compute all students counts per period (unfiltered) for the period badges
   const todosAlunosContagemPorPeriodo = useMemo(() => {
     if (!currentWb) return {};
-    const fullDataset = parseWorkbookData(currentWb, currentFilename, []);
+    const fullDataset = parseWorkbookData(currentWb, currentFilename, [], colacoesConfig);
     const counts: Record<string, number> = {};
     for (const a of fullDataset.todosAlunos) {
       const p = a.periodo || 'Outros';
       counts[p] = (counts[p] || 0) + 1;
     }
     return counts;
-  }, [currentWb, currentFilename]);
+  }, [currentWb, currentFilename, colacoesConfig]);
+
+  // Handler for updating and saving Colações configuration
+  const handleSaveColacoesConfig = (newConfig: ColacaoGroup[]) => {
+    setColacoesConfig(newConfig);
+    saveStoredColacoesConfig(newConfig);
+  };
 
   // Handlers for period selection
   const handleTogglePeriodo = (periodo: string) => {
@@ -168,10 +190,12 @@ export default function App() {
         totalAlunos={dataset.todosAlunos.length}
         dataHora={dataset.dataHora}
         user={user}
+        colacoesRealizadasCount={colacoesRealizadasCount}
         onLogout={handleLogout}
         onLoadSample={handleLoadSample}
         onOpenGasModal={() => setIsGasModalOpen(true)}
         onOpenFormulaModal={() => setIsFormulaModalOpen(true)}
+        onOpenColacoesModal={() => setIsColacoesModalOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -225,6 +249,13 @@ export default function App() {
       <FormulaModal
         isOpen={isFormulaModalOpen}
         onClose={() => setIsFormulaModalOpen(false)}
+      />
+
+      <ColacoesModal
+        isOpen={isColacoesModalOpen}
+        onClose={() => setIsColacoesModalOpen(false)}
+        colacoesConfig={colacoesConfig}
+        onSaveConfig={handleSaveColacoesConfig}
       />
     </div>
   );

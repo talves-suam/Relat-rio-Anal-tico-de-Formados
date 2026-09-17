@@ -893,9 +893,49 @@ export const GAS_INDEX_HTML = `<!DOCTYPE html>
       const colDra139Possui = findCol([s => s.includes('possuiprotocolo_dra139'), s => s.includes('139') && s.includes('possui')]) ?? (isNewLayout ? 26 : 25);
       const colDra139Status = findCol([s => s.includes('ultimostatus_dra139'), s => s.includes('139') && s.includes('status')]) ?? (isNewLayout ? 27 : 26);
 
-      const colEnade = findCol([s => s.includes('participacoes_enade_concluinte'), s => s.includes('enade concluinte'), s === 'enade', s => s.includes('enade') && !s.includes('ingressante')]) ?? (isNewLayout ? 32 : 30);
+      const colEnade = findCol([s => s.includes('participacoes_enade_concluinte'), s => s.includes('enade concluinte'), s => s === 'enade', s => s.includes('enade') && !s.includes('ingressante')]) ?? (isNewLayout ? 32 : 30);
       const colResFound = findCol([s => s === 'resultado', s => s.includes('resultado')]);
       const colRes = colResFound !== null ? colResFound : (isNewLayout ? 33 : 31);
+
+      // Cursos com colação já realizada (ou com datas já encerradas)
+      const cursosColacaoRealizada = new Set([
+        'arquitetura e urbanismo', 'bacharelado em biologia', 'bacharelado em educacao fisica',
+        'ciencia da computacao', 'engenharia civil', 'engenharia de producao', 'engenharia eletrica',
+        'engenharia mecanica', 'licenciatura em educacao fisica', 'licenciatura em historia',
+        'licenciatura em letras', 'licenciatura em pedagogia',
+        'superior de tecnologia em analise e desenvolvimento de sistemas',
+        'superior de tecnologia em design de interiores',
+        'superior de tecnologia em gestao da tecnologia da informacao',
+        'superior de tecnologia em redes de computadores', 'farmacia', 'nutricao',
+        'superior de tecnologia em gastronomia', 'servico social',
+        'superior de tecnologia em gestao ambiental', 'superior de tecnologia em gestao hospitalar',
+        'odontologia', 'fisioterapia', 'bacharelado em biomedicina',
+        'superior de tecnologia em estetica e cosmetica',
+        // 19 de Setembro
+        'direito', 'comunicacao social', 'superior de tecnologia em marketing',
+        'superior de tecnologia em design grafico',
+        'superior de tecnologia em gestao de servicos juridicos notariais',
+        'enfermagem', 'ciencias contabeis',
+        // 20 de Setembro
+        'superior de tecnologia em gestao de recursos humanos',
+        'superior de tecnologia em gestao financeira',
+        'superior de tecnologia em gestao publica',
+        'superior de tecnologia em gestao de negocios e inovacao',
+        'superior de tecnologia em automacao industrial',
+        'superior de tecnologia em gestao comercial',
+        'superior de tecnologia em gestao de seguranca publica',
+        'superior de tecnologia em processos gerenciais', 'psicologia'
+      ]);
+
+      function isCursoColacaoJaRealizada(c) {
+        if (!c) return false;
+        const cn = normText(c);
+        if (cursosColacaoRealizada.has(cn)) return true;
+        for (const cr of cursosColacaoRealizada) {
+          if (cn.includes(cr) || (cr.length >= 6 && cr.includes(cn))) return true;
+        }
+        return false;
+      }
 
       // Collect available periods
       const periodCounts = {};
@@ -968,7 +1008,8 @@ export const GAS_INDEX_HTML = `<!DOCTYPE html>
           if (normText(aa139) === 'em exigencia') {
             pParts.push('Resolver Exigência do DRA139 (Cerimônia de Formatura)');
           } else if (isNao(z139)) {
-            const naColacaoRealizada = colacaoMatriculas.has(mat) || (curso && colacaoMatriculas.has(curso));
+            const cursoColou = isCursoColacaoJaRealizada(curso);
+            const naColacaoRealizada = colacaoMatriculas.has(mat) || (curso && colacaoMatriculas.has(curso)) || cursoColou;
             if (naColacaoRealizada) {
               pParts.push('Cerimônia de Formatura Realizada, NÃO Abrir DRA139 (Cerimônia de Formatura)');
             } else {
@@ -1063,7 +1104,7 @@ export const GAS_INDEX_HTML = `<!DOCTYPE html>
           }
 
           if (tem100) exportar100 = true;
-          if (tem139 && !bloqueio139) exportar139 = true;
+          if (tem139 && !bloqueio139 && !isCursoColacaoJaRealizada(curso) && !colacaoMatriculas.has(mat)) exportar139 = true;
         }
 
         // ENADE classification

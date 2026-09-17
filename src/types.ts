@@ -23,10 +23,12 @@ export interface StudentEvaluated {
   matricula: string;
   nome: string;
   cpf: string;
+  curso?: string;
   periodo: string;
   resultadoOriginal: string;
   dataColacao: string;
   jaColouGrau: boolean;
+  colacaoCursoRealizada?: boolean;
   
   // Destination booleans
   exportarEnade: boolean;
@@ -48,6 +50,14 @@ export interface StudentEvaluated {
   parecer137?: string;
   parecer100?: string;
   parecer139?: string;
+}
+
+export interface ColacaoGroup {
+  id: string;
+  titulo: string;
+  data: string; // YYYY-MM-DD or empty
+  jaRealizada: boolean;
+  cursos: string[];
 }
 
 export interface ProcessedDataset {

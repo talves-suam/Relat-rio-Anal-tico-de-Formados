@@ -85,13 +85,17 @@ export const ReportCards: React.FC<ReportCardsProps> = ({ dataset, onSelectStude
       id: 'dra139' as const,
       title: 'Processos em Massa DRA139',
       subtitle: 'Cerimônia de Formatura',
-      desc: 'Status: Aguardando Atendimento • Parecer Oficial "Coruja..." • Trava para já realizadas',
+      desc: 'Status: Aguardando Atendimento • Parecer Oficial "Coruja..." • Trava para cursos c/ colação realizada',
       alunos: dataset.alunos139,
       count: dataset.alunos139.length,
       icon: GraduationCap,
       color: 'violet',
       bgLight: 'bg-violet-50 text-violet-700 border-violet-200',
       btnColor: 'bg-violet-600 hover:bg-violet-700 text-white',
+      badgeExtra:
+        dataset.todosAlunos.filter((a) => a.colacaoCursoRealizada).length > 0
+          ? `${dataset.todosAlunos.filter((a) => a.colacaoCursoRealizada).length} excluídos (cursos c/ colação realizada)`
+          : null,
     },
   ];
 
